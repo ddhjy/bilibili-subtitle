@@ -1,5 +1,5 @@
 import devData from '../data/data.json'
-import {APP_DOM_ID, SUMMARIZE_TYPES} from '../const'
+import {APP_DOM_ID, CUSTOM_MODEL_TOKENS, MODEL_DEFAULT, MODEL_MAP, SUMMARIZE_TYPES} from '../const'
 import {isDarkMode} from '@kky002/kky-util'
 import toast from 'react-hot-toast'
 import {findIndex} from 'lodash-es'
@@ -121,6 +121,22 @@ export const getServerUrl = (serverUrl?: string) => {
     serverUrl = serverUrl.slice(0, -1)
   }
   return serverUrl
+}
+
+export const getModel = (envData: EnvData) => {
+  if (envData.model === 'custom') {
+    return envData.customModel
+  } else {
+    return envData.model
+  }
+}
+
+export const getModelMaxTokens = (envData: EnvData) => {
+  if (envData.model === 'custom') {
+    return envData.customModelTokens??CUSTOM_MODEL_TOKENS
+  } else {
+    return MODEL_MAP[envData.model??MODEL_DEFAULT]?.tokens??4000
+  }
 }
 
 export const setTheme = (theme: EnvData['theme']) => {
@@ -253,7 +269,15 @@ export const extractJsonObject = (content: string) => {
   const start = content.indexOf('```')
   const end = content.lastIndexOf('```')
   if (start >= 0 && end >= 0) {
-    content = content.slice(start + 3, end)
+    if (start === end) { // 异常情况
+      if (content.startsWith('```')) {
+        content = content.slice(3)
+      } else {
+        content = content.slice(0, -3)
+      }
+    } else {
+      content = content.slice(start + 3, end)
+    }
   }
   // get content between { and }
   const start2 = content.indexOf('{')
@@ -269,7 +293,15 @@ export const extractJsonArray = (content: string) => {
   const start = content.indexOf('```')
   const end = content.lastIndexOf('```')
   if (start >= 0 && end >= 0) {
-    content = content.slice(start + 3, end)
+    if (start === end) { // 异常情况
+      if (content.startsWith('```')) {
+        content = content.slice(3)
+      } else {
+        content = content.slice(0, -3)
+      }
+    } else {
+      content = content.slice(start + 3, end)
+    }
   }
   // get content between [ and ]
   const start3 = content.indexOf('[')

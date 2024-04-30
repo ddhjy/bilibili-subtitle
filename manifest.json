@@ -1,12 +1,16 @@
 {
   "name": "哔哩哔哩字幕列表",
   "description": "显示B站视频的字幕列表,可点击跳转与下载字幕,并支持翻译和总结字幕!",
-  "version": "1.7.7",
+  "version": "1.9.3",
   "manifest_version": 3,
   "permissions": [
     "storage"
   ],
   "key" : "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtRvIHOMNVoWNH7cMHBVQARm8JyTgwF9biS94yGA92oerAc\/XwK83ur63wRUvx64HuHFWJ8iUNygHKtecMIeZlrl85wxUbJoxqFkEkC3qsF6B+UZf7sN2HmiihlU9oLXem2Xig2UB0aGYw1xEPdtiimCrIgSdtMqbGlDrfA\/khG+PO\/tSGKUAY1Lak9tew6GQR2qz\/mPk2r+x8rttnAUt5hSNcv8PpsSCZnumbD+nHaj+UKP1QmXdO8QVkUwtcl8a5xX230aA8RGcWqSOyqD\/JrdvgeVUkuIzUIeAbCrGWTGYHXuz8JPThLnYQCEHocuRAnV+L5FdTIRFEfaZ9f4aeQIDAQAB",
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
   "background": {
     "service_worker": "src/chrome/background.ts"
   },

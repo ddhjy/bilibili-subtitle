@@ -2,23 +2,27 @@ import React, {PropsWithChildren, useCallback, useMemo, useState} from 'react'
 import {setEnvData, setPage} from '../redux/envReducer'
 import {useAppDispatch, useAppSelector} from '../hooks/redux'
 import {
+  ASK_ENABLED_DEFAULT,
+  CUSTOM_MODEL_TOKENS,
+  DEFAULT_SERVER_URL_OPENAI,
+  GEMINI_TOKENS,
   HEADER_HEIGHT,
   LANGUAGE_DEFAULT,
   LANGUAGES,
   MODEL_DEFAULT,
+  MODEL_MAP,
   MODELS,
   PAGE_MAIN,
   PROMPT_DEFAULTS,
   PROMPT_TYPES,
-  SERVER_URL_THIRD,
   SUMMARIZE_LANGUAGE_DEFAULT,
   TRANSLATE_FETCH_DEFAULT,
   TRANSLATE_FETCH_MAX,
   TRANSLATE_FETCH_MIN,
   TRANSLATE_FETCH_STEP,
-  WORDS_DEFAULT,
+  WORDS_RATE,
 } from '../const'
-import {IoWarning} from 'react-icons/all'
+import {FaGripfire, IoWarning} from 'react-icons/all'
 import classNames from 'classnames'
 import toast from 'react-hot-toast'
 import {useBoolean, useEventTarget} from 'ahooks'
@@ -59,18 +63,23 @@ const Settings = () => {
   const {value: translateEnableValue, onChange: setTranslateEnableValue} = useEventChecked(envData.translateEnable)
   const {value: summarizeEnableValue, onChange: setSummarizeEnableValue} = useEventChecked(envData.summarizeEnable)
   const {value: searchEnabledValue, onChange: setSearchEnabledValue} = useEventChecked(envData.searchEnabled)
+  const {value: askEnabledValue, onChange: setAskEnabledValue} = useEventChecked(envData.askEnabled??ASK_ENABLED_DEFAULT)
   const {value: cnSearchEnabledValue, onChange: setCnSearchEnabledValue} = useEventChecked(envData.cnSearchEnabled)
   const {value: summarizeFloatValue, onChange: setSummarizeFloatValue} = useEventChecked(envData.summarizeFloat)
   const [apiKeyValue, { onChange: onChangeApiKeyValue }] = useEventTarget({initialValue: envData.apiKey??''})
   const [serverUrlValue, setServerUrlValue] = useState(envData.serverUrl)
+  const [geminiApiKeyValue, { onChange: onChangeGeminiApiKeyValue }] = useEventTarget({initialValue: envData.geminiApiKey??''})
   const [languageValue, { onChange: onChangeLanguageValue }] = useEventTarget({initialValue: envData.language??LANGUAGE_DEFAULT})
   const [modelValue, { onChange: onChangeModelValue }] = useEventTarget({initialValue: envData.model??MODEL_DEFAULT})
+  const [customModelValue, { onChange: onChangeCustomModelValue }] = useEventTarget({initialValue: envData.customModel})
+  const [customModelTokensValue, setCustomModelTokensValue] = useState(envData.customModelTokens)
   const [summarizeLanguageValue, { onChange: onChangeSummarizeLanguageValue }] = useEventTarget({initialValue: envData.summarizeLanguage??SUMMARIZE_LANGUAGE_DEFAULT})
   const [hideOnDisableAutoTranslateValue, setHideOnDisableAutoTranslateValue] = useState(envData.hideOnDisableAutoTranslate)
   const [themeValue, setThemeValue] = useState(envData.theme)
   const [fontSizeValue, setFontSizeValue] = useState(envData.fontSize)
+  const [aiTypeValue, setAiTypeValue] = useState(envData.aiType)
   const [transDisplayValue, setTransDisplayValue] = useState(envData.transDisplay)
-  const [wordsValue, setWordsValue] = useState<number | undefined>(envData.words??WORDS_DEFAULT)
+  const [wordsValue, setWordsValue] = useState<number | undefined>(envData.words)
   const [fetchAmountValue, setFetchAmountValue] = useState(envData.fetchAmount??TRANSLATE_FETCH_DEFAULT)
   const [moreFold, {toggle: toggleMoreFold}] = useBoolean(true)
   const [promptsFold, {toggle: togglePromptsFold}] = useBoolean(true)
@@ -91,6 +100,12 @@ const Settings = () => {
     }
     return list
   }, [])
+  const apiKeySetted = useMemo(() => {
+    if (aiTypeValue === 'gemini') {
+      return !!geminiApiKeyValue
+    }
+    return !!apiKeyValue
+  }, [aiTypeValue, apiKeyValue, geminiApiKeyValue])
 
   const onChangeHideOnDisableAutoTranslate = useCallback((e: any) => {
     setHideOnDisableAutoTranslateValue(e.target.checked)
@@ -99,9 +114,13 @@ const Settings = () => {
   const onSave = useCallback(() => {
     dispatch(setEnvData({
       autoExpand: autoExpandValue,
+      aiType: aiTypeValue,
       apiKey: apiKeyValue,
       serverUrl: serverUrlValue,
       model: modelValue,
+      customModel: customModelValue,
+      customModelTokens: customModelTokensValue,
+      geminiApiKey: geminiApiKeyValue,
       translateEnable: translateEnableValue,
       language: languageValue,
       hideOnDisableAutoTranslate: hideOnDisableAutoTranslateValue,
@@ -116,10 +135,11 @@ const Settings = () => {
       prompts: promptsValue,
       searchEnabled: searchEnabledValue,
       cnSearchEnabled: cnSearchEnabledValue,
+      askEnabled: askEnabledValue,
     }))
     dispatch(setPage(PAGE_MAIN))
     toast.success('保存成功')
-  }, [dispatch, autoExpandValue, apiKeyValue, serverUrlValue, modelValue, translateEnableValue, languageValue, hideOnDisableAutoTranslateValue, themeValue, transDisplayValue, summarizeEnableValue, summarizeFloatValue, summarizeLanguageValue, wordsValue, fetchAmountValue, fontSizeValue, promptsValue, searchEnabledValue, cnSearchEnabledValue])
+  }, [dispatch, autoExpandValue, aiTypeValue, apiKeyValue, serverUrlValue, modelValue, customModelValue, customModelTokensValue, geminiApiKeyValue, translateEnableValue, languageValue, hideOnDisableAutoTranslateValue, themeValue, transDisplayValue, summarizeEnableValue, summarizeFloatValue, summarizeLanguageValue, wordsValue, fetchAmountValue, fontSizeValue, promptsValue, searchEnabledValue, cnSearchEnabledValue, askEnabledValue])
 
   const onCancel = useCallback(() => {
     dispatch(setPage(PAGE_MAIN))
@@ -165,6 +185,14 @@ const Settings = () => {
     setFontSizeValue('large')
   }, [])
 
+  const onSelOpenai = useCallback(() => {
+    setAiTypeValue('openai')
+  }, [])
+
+  const onSelGemini = useCallback(() => {
+    setAiTypeValue('gemini')
+  }, [])
+
   return <div className='text-sm overflow-y-auto' style={{
     height: fold?undefined:`${totalHeight-HEADER_HEIGHT}px`,
   }}>
@@ -187,62 +215,98 @@ const Settings = () => {
             <button onClick={onSelFontSize2} className={classNames('btn btn-xs no-animation', fontSizeValue === 'large'?'btn-active':'')}>加大</button>
           </div>
         </FormItem>
+        <FormItem title='AI类型' tip='OPENAI质量更高'>
+          <div className="btn-group">
+            <button onClick={onSelOpenai} className={classNames('btn btn-xs no-animation', (!aiTypeValue || aiTypeValue === 'openai')?'btn-active':'')}>OpenAI</button>
+            <button onClick={onSelGemini} className={classNames('btn btn-xs no-animation', aiTypeValue === 'gemini'?'btn-active':'')}>Gemini</button>
+          </div>
+        </FormItem>
       </Section>
-      <Section title='openai配置'>
+
+      {(!aiTypeValue || aiTypeValue === 'openai') && <Section title='openai配置'>
         <FormItem title='ApiKey' htmlFor='apiKey'>
-          <input id='apiKey' type='text' className='input input-sm input-bordered w-full' placeholder='sk-xxx' value={apiKeyValue} onChange={onChangeApiKeyValue}/>
+          <input id='apiKey' type='text' className='input input-sm input-bordered w-full' placeholder='sk-xxx'
+                 value={apiKeyValue} onChange={onChangeApiKeyValue}/>
         </FormItem>
         <FormItem title='服务器' htmlFor='serverUrl'>
-          <input id='serverUrl' type='text' className='input input-sm input-bordered w-full' placeholder='服务器地址,默认使用官方地址' value={serverUrlValue} onChange={e => setServerUrlValue(e.target.value)}/>
+          <input id='serverUrl' type='text' className='input input-sm input-bordered w-full'
+                 placeholder={DEFAULT_SERVER_URL_OPENAI} value={serverUrlValue}
+                 onChange={e => setServerUrlValue(e.target.value)}/>
         </FormItem>
-        <div className='flex justify-center'>
-          <a className='link text-xs' onClick={toggleMoreFold}>{moreFold?'点击查看说明':'点击折叠说明'}</a>
+        <div>
+          <div className='desc text-xs text-center'>
+            <div className='flex justify-center font-semibold'>【官方地址】</div>
+            <div>官方网址：<a className='link link-primary' href='https://platform.openai.com/' target='_blank'
+                             rel="noreferrer">点击访问</a></div>
+            <div>服务器地址：<a className='link link-primary'
+                               onClick={() => setServerUrlValue(DEFAULT_SERVER_URL_OPENAI)}
+                               rel='noreferrer'>点击设置</a></div>
+            <div className='flex justify-center font-semibold'>【第三方代理】</div>
+            <div>代理网址：<a className='link link-primary' href='https://api.openai-up.com/register?aff=varM'
+                             target='_blank'
+                             rel="noreferrer">点击访问</a></div>
+            <div>服务器地址：<a className='link link-primary'
+                               onClick={() => setServerUrlValue('https://api.openai-up.com')}
+                               rel='noreferrer'>点击设置</a></div>
+            <div className='text-amber-600 flex justify-center items-center'><FaGripfire/>目前价格不到官方价格的6折<FaGripfire/></div>
+          </div>
         </div>
-        {!moreFold && <div>
-          <ul className='pl-3 list-decimal desc text-xs'>
-            <li>官方服务器需要科学上网才能访问</li>
-            <li>官方网址：<a className='link' href='https://platform.openai.com/' target='_blank' rel="noreferrer">openai.com</a></li>
-            <li>支持官方代理(使用官方ApiKey)：<a className='link' onClick={() => setServerUrlValue(SERVER_URL_THIRD)} rel='noreferrer'>点击设置</a></li>
-            <li>支持代理(配合ApiKey)：<a className='link' href='https://api2d.com/' target='_blank' rel="noreferrer">api2d</a> | <a className='link' onClick={() => setServerUrlValue('https://openai.api2d.net')} rel='noreferrer'>点击设置</a></li>
-            <li>支持代理(配合ApiKey)：<a className='link' href='https://openaimax.com/' target='_blank' rel="noreferrer">OpenAI-Max</a> | <a className='link' onClick={() => setServerUrlValue('https://api.openaimax.com')} rel='noreferrer'>点击设置</a></li>
-            <li>支持代理(配合ApiKey)：<a className='link' href='https://openai-sb.com/' target='_blank' rel="noreferrer">OpenAI-SB</a> | <a className='link' onClick={() => setServerUrlValue('https://api.openai-sb.com')} rel='noreferrer'>点击设置</a></li>
-            <li>支持代理(配合ApiKey)：<a className='link' href='https://www.ohmygpt.com/' target='_blank' rel="noreferrer">OhMyGPT</a> | <a className='link' onClick={() => setServerUrlValue('https://api.ohmygpt.com')} rel='noreferrer'>点击设置</a></li>
-            <li>支持代理(配合ApiKey)：<a className='link' href='https://aiproxy.io/' target='_blank' rel="noreferrer">AIProxy</a> | <a className='link' onClick={() => setServerUrlValue('https://api.aiproxy.io')} rel='noreferrer'>点击设置</a></li>
-            <li>支持代理(配合ApiKey)：<a className='link' href='https://key-rental.bowen.cool/' target='_blank' rel="noreferrer">Key Rental</a> | <a className='link' onClick={() => setServerUrlValue('https://key-rental-api.bowen.cool/openai')} rel='noreferrer'>点击设置</a></li>
-            <li>支持其他第三方代理，有问题可加群交流</li>
-          </ul>
-        </div>}
-        <FormItem title='模型选择' htmlFor='modelSel' tip='注意，不同模型有不同价格'>
-          <select id='modelSel' className="select select-sm select-bordered" value={modelValue} onChange={onChangeModelValue}>
+        <FormItem title='模型选择' htmlFor='modelSel' tip='注意，不同模型有不同价格与token限制'>
+          <select id='modelSel' className="select select-sm select-bordered" value={modelValue}
+                  onChange={onChangeModelValue}>
             {MODELS.map(model => <option key={model.code} value={model.code}>{model.name}</option>)}
           </select>
         </FormItem>
-        <div className='flex justify-center'>
-          <a className='link text-xs' onClick={togglePromptsFold}>{promptsFold?'点击查看提示词':'点击折叠提示词'}</a>
+        {modelValue === 'custom' && <FormItem title='模型名' htmlFor='customModel'>
+          <input id='customModel' type='text' className='input input-sm input-bordered w-full' placeholder='llama2'
+                 value={customModelValue} onChange={onChangeCustomModelValue}/>
+        </FormItem>}
+        {modelValue === 'custom' && <FormItem title='Token上限' htmlFor='customModelTokens'>
+          <input id='customModelTokens' type='number' className='input input-sm input-bordered w-full' placeholder={''+CUSTOM_MODEL_TOKENS}
+                 value={customModelTokensValue} onChange={e => setCustomModelTokensValue(e.target.value?parseInt(e.target.value):undefined)}/>
+        </FormItem>}
+      </Section>}
+
+      {aiTypeValue === 'gemini' && <Section title='gemini配置'>
+        <FormItem title='ApiKey' htmlFor='geminiApiKey'>
+          <input id='geminiApiKey' type='text' className='input input-sm input-bordered w-full' placeholder='xxx'
+                 value={geminiApiKeyValue} onChange={onChangeGeminiApiKeyValue}/>
+        </FormItem>
+        <div>
+          <div className='desc text-xs'>
+            <div>官方网址：<a className='link link-primary' href='https://makersuite.google.com/app/apikey' target='_blank'
+                            rel="noreferrer">Google AI Studio</a> (目前免费)
+            </div>
+            <div className='text-xs text-error flex items-center'><IoWarning className='text-sm text-warning'/>谷歌模型安全要求比较高，有些视频可能无法生成总结!</div>
+          </div>
         </div>
-        {!promptsFold && <div>
-          {PROMPT_TYPES.map((item, idx) => <FormItem key={item.type} title={<div>
-            <div>{item.name}</div>
-            <div className='link text-xs' onClick={() => {
-              setPromptsValue({
-                ...promptsValue,
-                // @ts-expect-error
-                [item.type]: PROMPT_DEFAULTS[item.type]??''
-              })
-            }}>点击填充默认</div>
-          </div>} htmlFor={`prompt-${item.type}`}>
-            <textarea id={`prompt-${item.type}`} className='mt-2 textarea input-bordered w-full' placeholder='留空使用默认提示词' value={promptsValue[item.type]??''} onChange={(e) => {
-              setPromptsValue({
-                ...promptsValue,
-                [item.type]: e.target.value
-              })
-            }}/>
-          </FormItem>)}
-        </div>}
+      </Section>}
+
+      <Section title='提示词配置'>
+        {PROMPT_TYPES.map((item, idx) => <FormItem key={item.type} title={<div>
+          <div>{item.name}</div>
+          <div className='link text-xs' onClick={() => {
+            setPromptsValue({
+              ...promptsValue,
+              // @ts-expect-error
+              [item.type]: PROMPT_DEFAULTS[item.type] ?? ''
+            })
+          }}>点击填充默认
+          </div>
+        </div>} htmlFor={`prompt-${item.type}`}>
+          <textarea id={`prompt-${item.type}`} className='mt-2 textarea input-bordered w-full'
+                    placeholder='留空使用默认提示词' value={promptsValue[item.type] ?? ''} onChange={(e) => {
+                      setPromptsValue({
+                        ...promptsValue,
+                        [item.type]: e.target.value
+                      })
+                    }}/>
+        </FormItem>)}
       </Section>
+
       <Section title={<div className='flex items-center'>
         翻译配置
-        {!apiKeyValue && <div className='tooltip tooltip-right ml-1' data-tip='未设置ApiKey无法使用'>
+        {!apiKeySetted && <div className='tooltip tooltip-right ml-1' data-tip='未设置ApiKey无法使用'>
           <IoWarning className='text-sm text-warning'/>
         </div>}
       </div>}>
@@ -251,7 +315,8 @@ const Settings = () => {
                  onChange={setTranslateEnableValue}/>
         </FormItem>
         <FormItem title='目标语言' htmlFor='language'>
-          <select id='language' className="select select-sm select-bordered" value={languageValue} onChange={onChangeLanguageValue}>
+          <select id='language' className="select select-sm select-bordered" value={languageValue}
+                  onChange={onChangeLanguageValue}>
             {LANGUAGES.map(language => <option key={language.code} value={language.code}>{language.name}</option>)}
           </select>
         </FormItem>
@@ -277,7 +342,7 @@ const Settings = () => {
       </Section>
       <Section title={<div className='flex items-center'>
         总结配置
-        {!apiKeyValue && <div className='tooltip tooltip-right ml-1' data-tip='未设置ApiKey无法使用'>
+        {!apiKeySetted && <div className='tooltip tooltip-right ml-1' data-tip='未设置ApiKey无法使用'>
           <IoWarning className='text-sm text-warning'/>
         </div>}
       </div>}>
@@ -296,13 +361,17 @@ const Settings = () => {
         </FormItem>
         <FormItem htmlFor='words' title='分段字数' tip='注意，不同模型有不同字数限制'>
           <div className='flex-1 flex flex-col'>
-            <input id='words' type='number' className='input input-sm input-bordered w-full' placeholder='默认2000' value={wordsValue} onChange={e => setWordsValue(e.target.value?parseInt(e.target.value):undefined)}/>
+            <input id='words' type='number' className='input input-sm input-bordered w-full' placeholder={`默认为上限x${WORDS_RATE}`} value={wordsValue??''} onChange={e => setWordsValue(e.target.value?parseInt(e.target.value):undefined)}/>
             {/* <input type="range" min={WORDS_MIN} max={WORDS_MAX} step={WORDS_STEP} value={wordsValue} className="range range-primary" onChange={onWordsChange} /> */}
             {/* <div className="w-full flex justify-between text-xs px-2"> */}
             {/*  {wordsList.map(words => <span key={words}>{words}</span>)} */}
             {/* </div> */}
           </div>
         </FormItem>
+        <div className='desc text-xs'>
+          当前选择的模型的分段字数上限是<span className='font-semibold font-mono'>{aiTypeValue === 'gemini'?GEMINI_TOKENS:(MODEL_MAP[modelValue??MODEL_DEFAULT]?.tokens??'未知')}</span>
+          （太接近上限总结会报错）
+        </div>
       </Section>
       <Section title={<div className='flex items-center'>
         搜索配置
@@ -314,6 +383,14 @@ const Settings = () => {
         <FormItem title='拼音搜索' htmlFor='cnSearchEnabled' tip='是否启用中文拼音搜索'>
           <input id='cnSearchEnabled' type='checkbox' className='toggle toggle-primary' checked={cnSearchEnabledValue}
                  onChange={setCnSearchEnabledValue}/>
+        </FormItem>
+      </Section>
+      <Section title={<div className='flex items-center'>
+        提问配置
+      </div>}>
+        <FormItem title='启用提问' htmlFor='askEnabled' tip='是否启用字幕提问功能'>
+          <input id='askEnabled' type='checkbox' className='toggle toggle-primary' checked={askEnabledValue}
+                 onChange={setAskEnabledValue}/>
         </FormItem>
       </Section>
       <div className='flex justify-center gap-5'>

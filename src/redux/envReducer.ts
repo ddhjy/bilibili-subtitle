@@ -1,7 +1,7 @@
 import {createSlice, PayloadAction} from '@reduxjs/toolkit'
 import {find} from 'lodash-es'
 import {getDevData} from '../util/biz_util'
-import {SERVER_URL_OPENAI, TOTAL_HEIGHT_DEF} from '../const'
+import {DEFAULT_SERVER_URL_OPENAI, TOTAL_HEIGHT_DEF} from '../const'
 
 interface EnvState {
   envData: EnvData
@@ -17,7 +17,6 @@ interface EnvState {
   autoScroll?: boolean
   checkAutoScroll?: boolean
   curOffsetTop?: number
-  compact?: boolean // 是否紧凑视图
   floatKeyPointsSegIdx?: number // segment的startIdx
 
   noVideo?: boolean
@@ -25,13 +24,13 @@ interface EnvState {
   curIdx?: number // 从0开始
   needScroll?: boolean
   currentTime?: number
-  downloadType?: string
   infos?: any[]
   curInfo?: any
   curFetched?: boolean
   data?: Transcript
   uploadedTranscript?: Transcript
   segments?: Segment[]
+  url?: string
   title?: string
 
   taskIds?: string[]
@@ -39,13 +38,20 @@ interface EnvState {
   lastTransTime?: number
   lastSummarizeTime?: number
 
+  // ask
+  askFold?: boolean
+  askQuestion?: string
+  askStatus: SummaryStatus
+  askError?: string
+  askContent?: string
+
   searchText: string
   searchResult: Set<number>
 }
 
 const initialState: EnvState = {
   envData: {
-    serverUrl: SERVER_URL_OPENAI,
+    serverUrl: DEFAULT_SERVER_URL_OPENAI,
     translateEnable: true,
     summarizeEnable: true,
     autoExpand: true,
@@ -55,6 +61,7 @@ const initialState: EnvState = {
   tempData: {
     curSummaryType: 'overview',
   },
+  askStatus: 'init',
   totalHeight: TOTAL_HEIGHT_DEF,
   autoScroll: true,
   currentTime: import.meta.env.VITE_ENV === 'web-dev' ? 30 : undefined,
@@ -81,7 +88,7 @@ export const slice = createSlice({
     setEnvReady: (state) => {
       state.envReady = true
     },
-    setTempData: (state, action: PayloadAction<TempData>) => {
+    setTempData: (state, action: PayloadAction<Partial<TempData>>) => {
       state.tempData = {
         ...state.tempData,
         ...action.payload,
@@ -101,9 +108,6 @@ export const slice = createSlice({
     },
     setFoldAll: (state, action: PayloadAction<boolean>) => {
       state.foldAll = action.payload
-    },
-    setCompact: (state, action: PayloadAction<boolean>) => {
-      state.compact = action.payload
     },
     setPage: (state, action: PayloadAction<string | undefined>) => {
       state.page = action.payload
@@ -200,6 +204,27 @@ export const slice = createSlice({
         }
       }
     },
+    setAskFold: (state, action: PayloadAction<boolean>) => {
+      state.askFold = action.payload
+    },
+    setAskQuestion: (state, action: PayloadAction<string | undefined>) => {
+      state.askQuestion = action.payload
+    },
+    setAskContent: (state, action: PayloadAction<{
+      content?: any
+    }>) => {
+      state.askContent = action.payload.content
+    },
+    setAskStatus: (state, action: PayloadAction<{
+      status: SummaryStatus
+    }>) => {
+      state.askStatus = action.payload.status
+    },
+    setAskError: (state, action: PayloadAction<{
+      error?: string
+    }>) => {
+      state.askError = action.payload.error
+    },
     setSegmentFold: (state, action: PayloadAction<{
       segmentStartIdx: number
       fold: boolean
@@ -230,14 +255,14 @@ export const slice = createSlice({
     setNoVideo: (state, action: PayloadAction<boolean>) => {
       state.noVideo = action.payload
     },
-    setDownloadType: (state, action: PayloadAction<string>) => {
-      state.downloadType = action.payload
-    },
     setNeedScroll: (state, action: PayloadAction<boolean>) => {
       state.needScroll = action.payload
     },
     setCurrentTime: (state, action: PayloadAction<number | undefined>) => {
       state.currentTime = action.payload
+    },
+    setUrl: (state, action: PayloadAction<string | undefined>) => {
+      state.url = action.payload
     },
     setTitle: (state, action: PayloadAction<string | undefined>) => {
       state.title = action.payload
@@ -267,6 +292,12 @@ export const slice = createSlice({
 })
 
 export const {
+  setUrl,
+  setAskFold,
+  setAskQuestion,
+  setAskStatus,
+  setAskError,
+  setAskContent,
   setTempReady,
   setTempData,
   setUploadedTranscript,
@@ -275,7 +306,6 @@ export const {
   setCurOffsetTop,
   setFloatKeyPointsSegIdx,
   setFoldAll,
-  setCompact,
   setSegmentFold,
   setSummaryContent,
   setSummaryStatus,
@@ -290,7 +320,6 @@ export const {
   addTaskId,
   delTaskId,
   setTaskIds,
-  setDownloadType,
   setAutoTranslate,
   setAutoScroll,
   setNoVideo,

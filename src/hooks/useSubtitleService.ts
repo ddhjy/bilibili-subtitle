@@ -12,11 +12,12 @@ import {
   setSegments,
   setTitle,
   setTotalHeight,
+  setUrl,
 } from '../redux/envReducer'
 import {EventBusContext} from '../Router'
-import {EVENT_EXPAND, TOTAL_HEIGHT_MAX, TOTAL_HEIGHT_MIN, WORDS_DEFAULT, WORDS_MAX, WORDS_MIN} from '../const'
+import {EVENT_EXPAND, GEMINI_TOKENS, TOTAL_HEIGHT_MAX, TOTAL_HEIGHT_MIN, WORDS_MIN, WORDS_RATE} from '../const'
 import {useInterval} from 'ahooks'
-import {getWholeText} from '../util/biz_util'
+import {getModelMaxTokens, getWholeText} from '../util/biz_util'
 
 /**
  * Service是单例，类似后端的服务概念
@@ -46,6 +47,7 @@ const useSubtitleService = () => {
 
       if (data.type === 'setVideoInfo') {
         dispatch(setInfos(data.infos))
+        dispatch(setUrl(data.url))
         dispatch(setTitle(data.title))
         console.debug('video title: ', data.title)
       }
@@ -94,7 +96,7 @@ const useSubtitleService = () => {
         type: EVENT_EXPAND
       })
     }
-  }, [data, eventBus])
+  }, [data, eventBus, infos])
 
   // 当前未展示 & (未折叠 | 自动展开) & 有列表 => 展示第一个
   useEffect(() => {
@@ -156,8 +158,15 @@ const useSubtitleService = () => {
     const items = data?.body
     if (items != null) {
       if (envData.summarizeEnable) { // 分段
-        let size = envData.words??WORDS_DEFAULT
-        size = Math.min(Math.max(size, WORDS_MIN), WORDS_MAX)
+        let size = envData.words
+        if (!size) { // 默认
+          if (envData.aiType === 'gemini') {
+            size = GEMINI_TOKENS*WORDS_RATE
+          } else {
+            size = getModelMaxTokens(envData)*WORDS_RATE
+          }
+        }
+        size = Math.max(size, WORDS_MIN)
 
         segments = []
         let transcriptItems: TranscriptItem[] = []
@@ -191,7 +200,7 @@ const useSubtitleService = () => {
       }
     }
     dispatch(setSegments(segments))
-  }, [data?.body, dispatch, envData.summarizeEnable, envData.words])
+  }, [data?.body, dispatch, envData])
 
   // 每秒更新当前视频时间
   useInterval(() => {

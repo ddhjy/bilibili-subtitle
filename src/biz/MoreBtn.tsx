@@ -11,7 +11,7 @@ import {
 import Popover from '../components/Popover'
 import {Placement} from '@popperjs/core/lib/enums'
 import {useAppDispatch, useAppSelector} from '../hooks/redux'
-import {setDownloadType, setEnvData, setPage} from '../redux/envReducer'
+import {setEnvData, setPage, setTempData} from '../redux/envReducer'
 import {EventBusContext} from '../Router'
 import {EVENT_EXPAND, PAGE_SETTINGS} from '../const'
 import {formatSrtTime, formatTime, formatVttTime} from '../util/util'
@@ -62,10 +62,11 @@ const MoreBtn = (props: Props) => {
   const data = useAppSelector(state => state.env.data)
   const envReady = useAppSelector(state => state.env.envReady)
   const envData = useAppSelector(state => state.env.envData)
-  const downloadType = useAppSelector(state => state.env.downloadType)
+  const downloadType = useAppSelector(state => state.env.tempData.downloadType)
   const [moreVisible, setMoreVisible] = useState(false)
   const eventBus = useContext(EventBusContext)
   const segments = useAppSelector(state => state.env.segments)
+  const url = useAppSelector(state => state.env.url)
   const title = useAppSelector(state => state.env.title)
   const curSummaryType = useAppSelector(state => state.env.tempData.curSummaryType)
 
@@ -76,19 +77,19 @@ const MoreBtn = (props: Props) => {
 
     let s, fileName
     if (!downloadType || downloadType === 'text') {
-      s = ''
+      s = `${title??'无标题'}\n${url??'无链接'}\n\n`
       for (const item of data.body) {
         s += item.content + '\n'
       }
       fileName = 'download.txt'
     } else if (downloadType === 'textWithTime') {
-      s = ''
+      s = `${title??'无标题'}\n${url??'无链接'}\n\n`
       for (const item of data.body) {
         s += formatTime(item.from) + ' ' + item.content + '\n'
       }
       fileName = 'download.txt'
     } else if (downloadType === 'article') {
-      s = ''
+      s = `${title??'无标题'}\n${url??'无链接'}\n\n`
       for (const item of data.body) {
         s += item.content + ', '
       }
@@ -138,9 +139,10 @@ const MoreBtn = (props: Props) => {
       s = JSON.stringify(data)
       fileName = 'download.json'
     } else if (downloadType === 'summarize') {
+      s = `${title??'无标题'}\n${url??'无链接'}\n\n`
       const [success, content] = getSummarize(title, segments, curSummaryType)
       if (!success) return
-      s = content
+      s += content
       fileName = '总结.txt'
     } else {
       return
@@ -156,7 +158,7 @@ const MoreBtn = (props: Props) => {
       }).catch(console.error)
     }
     setMoreVisible(false)
-  }, [curSummaryType, data, downloadType, segments, title])
+  }, [curSummaryType, data, downloadType, segments, title, url])
 
   const downloadAudioCallback = useCallback(() => {
     window.parent.postMessage({
@@ -165,7 +167,9 @@ const MoreBtn = (props: Props) => {
   }, [])
 
   const selectCallback = useCallback((e: any) => {
-    dispatch(setDownloadType(e.target.value))
+    dispatch(setTempData({
+      downloadType: e.target.value,
+    }))
   }, [dispatch])
 
   const preventCallback = useCallback((e: any) => {
@@ -262,16 +266,27 @@ const MoreBtn = (props: Props) => {
             微信公众号(IndieKKY)
           </a>
         </li>
-        <li className='hover:bg-accent'>
-          <a className='flex items-center' onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            openUrl('https://chromewebstore.google.com/detail/fiaeclpicddpifeflpmlgmbjgaedladf')
-          }}>
-            <img alt='youtube subtitle' src='/youtube-subtitle.png' className='w-[20px] h-[20px] bg-white rounded-sm p-0.5'/>
-            Youtube Subtitle
-          </a>
-        </li>
+        {/* <li className='hover:bg-accent'> */}
+        {/*  <a className='flex items-center' onClick={(e) => { */}
+        {/*    e.preventDefault() */}
+        {/*    e.stopPropagation() */}
+        {/*    openUrl('https://bibigpt.co/r/bilibili') */}
+        {/*  }}> */}
+        {/*    <img alt='BibiGPT' src='/bibigpt.png' className='w-[20px] h-[20px] bg-white rounded-sm p-0.5'/> */}
+        {/*    BibiGPT */}
+        {/*  </a> */}
+        {/* </li> */}
+        {/* <li className='hover:bg-accent'> */}
+        {/*  <a className='flex items-center' onClick={(e) => { */}
+        {/*    e.preventDefault() */}
+        {/*    e.stopPropagation() */}
+        {/*    openUrl('https://chromewebstore.google.com/detail/fiaeclpicddpifeflpmlgmbjgaedladf') */}
+        {/*  }}> */}
+        {/*    <img alt='youtube subtitle' src='/youtube-caption.png' */}
+        {/*         className='w-[20px] h-[20px] bg-white rounded-sm p-0.5'/> */}
+        {/*    Youtube Caption */}
+        {/*  </a> */}
+        {/* </li> */}
         <li className='hover:bg-accent'>
           <a className='flex items-center' onClick={(e) => {
             dispatch(setPage(PAGE_SETTINGS))
@@ -285,7 +300,7 @@ const MoreBtn = (props: Props) => {
         </li>
       </ul>
     </Popover>}
-</>
+  </>
 }
 
 export default MoreBtn

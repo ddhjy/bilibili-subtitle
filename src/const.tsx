@@ -9,6 +9,7 @@ export const PROMPT_TYPE_TRANSLATE = 'translate'
 export const PROMPT_TYPE_SUMMARIZE_OVERVIEW = 'summarize_overview'
 export const PROMPT_TYPE_SUMMARIZE_KEYPOINT = 'summarize_keypoint'
 export const PROMPT_TYPE_SUMMARIZE_BRIEF = 'summarize_brief'
+export const PROMPT_TYPE_ASK = 'ask'
 export const PROMPT_TYPES = [{
   name: '翻译',
   type: PROMPT_TYPE_TRANSLATE,
@@ -21,6 +22,9 @@ export const PROMPT_TYPES = [{
 }, {
   name: '总结',
   type: PROMPT_TYPE_SUMMARIZE_BRIEF,
+}, {
+  name: '提问',
+  type: PROMPT_TYPE_ASK,
 }]
 
 export const SUMMARIZE_TYPES = {
@@ -119,7 +123,20 @@ The video's subtitles:
 
 '''
 {{segment}}
-'''`
+'''`,
+  [PROMPT_TYPE_ASK]: `You are a helpful assistant who answers question related to video subtitles.
+Answer in language '{{language}}'.
+
+The video's title: '''{{title}}'''.
+The video's subtitles:
+
+'''
+{{segment}}
+'''
+
+Question: '''{{question}}'''
+Answer:
+`,
 }
 
 export const EVENT_EXPAND = 'expand'
@@ -142,29 +159,41 @@ export const TOTAL_HEIGHT_MAX = 800
 export const HEADER_HEIGHT = 44
 export const TITLE_HEIGHT = 24
 export const SEARCH_BAR_HEIGHT = 32
+export const RECOMMEND_HEIGHT = 36
 
-export const WORDS_DEFAULT = import.meta.env.VITE_ENV === 'web-dev'?500:2000
+export const WORDS_RATE = 0.75
 export const WORDS_MIN = 500
 export const WORDS_MAX = 16000
 export const WORDS_STEP = 500
 export const SUMMARIZE_THRESHOLD = 100
 export const SUMMARIZE_LANGUAGE_DEFAULT = 'cn'
 export const SUMMARIZE_ALL_THRESHOLD = 5
-
-export const SERVER_URL_OPENAI = 'https://api.openai.com'
-export const SERVER_URL_THIRD = 'https://op.kongkongye.com'
+export const ASK_ENABLED_DEFAULT = true
+export const DEFAULT_SERVER_URL_OPENAI = 'https://api.openai.com'
+export const CUSTOM_MODEL_TOKENS = 16385
 
 export const MODELS = [{
   code: 'gpt-3.5-turbo',
   name: 'gpt-3.5-turbo',
+  tokens: 4096,
 }, {
-  code: 'gpt-3.5-turbo-16k',
-  name: 'gpt-3.5-turbo-16k',
+  code: 'gpt-3.5-turbo-0125',
+  name: 'gpt-3.5-turbo-0125',
+  tokens: 16385,
 }, {
   code: 'gpt-3.5-turbo-1106',
   name: 'gpt-3.5-turbo-1106',
+  tokens: 16385,
+}, {
+  code: 'custom',
+  name: '自定义',
 }]
-export const MODEL_DEFAULT = MODELS[0].code
+export const GEMINI_TOKENS = 32768
+export const MODEL_DEFAULT = MODELS[1].code
+export const MODEL_MAP: {[key: string]: typeof MODELS[number]} = {}
+for (const model of MODELS) {
+  MODEL_MAP[model.code] = model
+}
 
 export const LANGUAGES = [{
   code: 'en',

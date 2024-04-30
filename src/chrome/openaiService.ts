@@ -1,4 +1,14 @@
-import {getServerUrl} from '../util/biz_util'
+import {DEFAULT_SERVER_URL_OPENAI} from '../const'
+
+const getServerUrl = (serverUrl?: string) => {
+  if (!serverUrl) {
+    return DEFAULT_SERVER_URL_OPENAI
+  }
+  if (serverUrl.endsWith('/')) {
+    serverUrl = serverUrl.slice(0, -1)
+  }
+  return serverUrl
+}
 
 export const handleChatCompleteTask = async (task: Task) => {
   const data = task.def.data
@@ -17,4 +27,17 @@ export const handleChatCompleteTask = async (task: Task) => {
   } else {
     throw new Error(`${task.resp.error.code as string??''} ${task.resp.error.message as string ??''}`)
   }
+}
+
+export const handleGeminiChatCompleteTask = async (task: Task) => {
+  const data = task.def.data
+  const resp = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': task.def.extra.geminiApiKey,
+    },
+    body: JSON.stringify(data),
+  })
+  task.resp = await resp.json()
 }

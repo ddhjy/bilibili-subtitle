@@ -1,9 +1,17 @@
 interface EnvData {
   autoExpand?: boolean
   flagDot?: boolean
+
+  aiType?: 'openai' | 'gemini'
+  // openai
   apiKey?: string
   serverUrl?: string
   model?: string
+  customModel?: string
+  customModelTokens?: number
+  // gemini
+  geminiApiKey?: string
+
   translateEnable?: boolean
   language?: string
   hideOnDisableAutoTranslate?: boolean
@@ -20,6 +28,9 @@ interface EnvData {
   searchEnabled?: boolean
   cnSearchEnabled?: boolean
 
+  // ask
+  askEnabled?: boolean
+
   prompts?: {
     [key: string]: string
   }
@@ -27,10 +38,12 @@ interface EnvData {
 
 interface TempData {
   curSummaryType: SummaryType
+  downloadType?: string
+  compact?: boolean // 是否紧凑视图
 }
 
 interface TaskDef {
-  type: 'chatComplete'
+  type: 'chatComplete' | 'geminiChatComplete'
   serverUrl?: string
   data: any
   extra?: any
