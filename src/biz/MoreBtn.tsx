@@ -69,7 +69,7 @@ const MoreBtn = (props: Props) => {
   const title = useAppSelector(state => state.env.title)
   const curSummaryType = useAppSelector(state => state.env.tempData.curSummaryType)
 
-  const downloadCallback = useCallback((download: boolean) => {
+  const downloadCallback = useCallback((download: boolean, openUrl?: string) => {
     if (data == null) {
       return
     }
@@ -150,6 +150,9 @@ const MoreBtn = (props: Props) => {
     } else {
       navigator.clipboard.writeText(s).then(() => {
         toast.success('复制成功')
+        if (openUrl) {
+          window.open(openUrl)
+        }
       }).catch(console.error)
     }
     setMoreVisible(false)
@@ -205,10 +208,10 @@ const MoreBtn = (props: Props) => {
           <a className='flex items-center' onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            downloadCallback(false)
+            downloadCallback(false, 'raycast://extensions/ddhjy2012/quickgpt/index?arguments=%7B%22target%22%3A%22quickgpt-TL%3BDR-927A45AF%22%7D')
           }}>
-            <RiFileCopy2Line className='w-[20px] h-[20px] text-primary/75 bg-white rounded-sm p-0.5'/>
-            复制
+            <RiFileCopy2Line className='w-[20px] h-[20px] text-primary/75 bg-white rounded-sm p-0.5' />
+            📝 TL;DR
             <select className='select select-ghost select-xs' value={downloadType} onChange={selectCallback}
                     onClick={preventCallback}>
               {DownloadTypes?.map((item: any) => <option key={item.type} value={item.type}>{item.name}</option>)}
